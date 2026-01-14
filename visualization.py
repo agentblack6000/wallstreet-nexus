@@ -1,3 +1,7 @@
+"""
+Industry Dataset Visualization
+"""
+from argparse import ArgumentParser
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -42,42 +46,49 @@ industry_name = {
     "Industry_29": "Fin industry portfolio",
     "Industry_30": "Other industry portfolio",
 }
+parser = ArgumentParser(prog="Industry Dataset Visualization", description="Using Pandas, matplotlib, Numpy, and Seaborn to visualize monthly returns and correlations")
+parser.add_argument("-f", "--filename", default="nexus.csv")
+parser.add_argument("-g", "--graphs", action='store_true')
+parser.add_argument("-c", "--correlations", action='store_true')
+args = parser.parse_args()
 
-industry_dataframe = pd.read_csv("nexus.csv", index_col="Date", parse_dates=True)
+industry_dataframe = pd.read_csv(args.filename, index_col="Date", parse_dates=True)
 
-# Visualizing the monthly returns
-for column in industry_dataframe.columns:
-    plt.figure(figsize=(14, 5))
+if args.graphs:
+    # Visualizing the monthly returns
+    for column in industry_dataframe.columns:
+        plt.figure(figsize=(14, 5))
 
-    industry_dataframe[column].plot(
-        color="skyblue", marker="o", linestyle="-", markersize=5, linewidth=1.5
-    )
+        industry_dataframe[column].plot(
+            color="skyblue", marker="o", linestyle="-", markersize=5, linewidth=1.5
+        )
 
-    data_points = industry_dataframe[column].values
+        data_points = industry_dataframe[column].values
 
-    limit = np.max(np.abs(data_points)) * (1 + graph_padding_factor)
-    plt.ylim(-limit, limit)
-    plt.grid(True, linestyle="--", alpha=0.7)
+        limit = np.max(np.abs(data_points)) * (1 + graph_padding_factor)
+        plt.ylim(-limit, limit)
+        plt.grid(True, linestyle="--", alpha=0.7)
+        plt.tight_layout()
+
+        file_path = os.path.join(graph_dir, f"{column}.png")
+        plt.savefig(file_path)
+        plt.close()
+
+if args.correlations:
+    # Finding correlations
+    industry_correlation_matrix = industry_dataframe.drop(
+        columns=["Mkt_RF", "Term_Spread", "VIX"]
+    ).corr()
+
+    plt.figure(figsize=(16, 12))
+
+    sns.heatmap(industry_correlation_matrix, annot=False, cmap="YlOrRd", linewidths=0.5)
+    plt.xticks(rotation=45)
     plt.tight_layout()
 
-    file_path = os.path.join(graph_dir, f"{column}.png")
-    plt.savefig(file_path)
+    plt.savefig(os.path.join(graph_dir, "industry_correlation_heatmap.png"))
     plt.close()
 
-# Finding correlations
-industry_correlation_matrix = industry_dataframe.drop(
-    columns=["Mkt_RF", "Term_Spread", "VIX"]
-).corr()
-
-plt.figure(figsize=(16, 12))
-
-sns.heatmap(industry_correlation_matrix, annot=False, cmap="YlOrRd", linewidths=0.5)
-plt.xticks(rotation=45)
-plt.tight_layout()
-
-plt.savefig(os.path.join(graph_dir, "industry_correlation_heatmap.png"))
-plt.close()
-
-pairs = industry_correlation_matrix.unstack().sort_values(ascending=False)
-strong_correlations = pairs[pairs < 1].drop_duplicates()
-print(strong_correlations)
+    pairs = industry_correlation_matrix.unstack().sort_values(ascending=False)
+    strong_correlations = pairs[pairs < 1].drop_duplicates()
+    print(strong_correlations)
