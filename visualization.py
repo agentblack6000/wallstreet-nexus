@@ -1,7 +1,13 @@
-import csv
 import matplotlib.pyplot as plt
-from matplotlib.dates import YearLocator, DateFormatter
-import datetime as dt
+import numpy as np
+import os
+import pandas as pd
+
+graph_padding_factor = 0.10
+
+graph_dir = "graphs"
+os.makedirs(graph_dir, exist_ok=True)
+
 
 industry_name = {
    "Industry_01": "Food industry portfolio",
@@ -36,34 +42,21 @@ industry_name = {
     "Industry_30": "Other industry portfolio",
 }
 
-cleaned_industry_dataset = {}
+industry_dataframe = pd.read_csv("nexus.csv", index_col='Date', parse_dates=True)
 
-with open("nexus.csv") as market_dataset:
-    csv_reader = csv.DictReader(market_dataset, delimiter=',')
-    date = ""
-    for row in csv_reader:
-        for key, value in row.items():
-            if key == 'Date':
-                date = value
-                continue
-            
-            industry_data = cleaned_industry_dataset.setdefault(key, [])
-            industry_data.append((date, float(value)))
-    
-for industry, dataset in cleaned_industry_dataset.items():
-    dates = [dt.datetime.strptime(d[0], "%m/%d/%Y") for d in dataset]
-    values = [d[1] for d in dataset]
-
+for column in industry_dataframe.columns:
     plt.figure(figsize=(14, 5))
-    plt.plot(dates, values, color='skyblue', marker='o', linestyle='-', markersize=5, linewidth=1.5)
 
-    plt.ylim(-16, 16)
-    plt.xticks(rotation=45)
+    industry_dataframe[column].plot(color='skyblue', marker='o', linestyle='-', markersize=5, linewidth=1.5)
 
+    data_points = industry_dataframe[column].values
 
-    plt.gca().xaxis.set_major_locator(YearLocator())
-    plt.gca().xaxis.set_major_formatter(DateFormatter('%Y'))
-
+    limit = np.max(np.abs(data_points)) * (1 + graph_padding_factor)
+    plt.ylim(-limit, limit)
     plt.grid(True, linestyle='--', alpha=0.7)
     plt.tight_layout()
-    plt.show()
+    
+    file_path = os.path.join(graph_dir, f"{column}.png")
+    plt.savefig(file_path)
+    plt.close()
+    
